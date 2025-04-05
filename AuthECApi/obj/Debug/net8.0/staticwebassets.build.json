@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "SgB4SV912e1UoxTCp6pRPTGDTGkYqkbD1ev7WTQDwVY=",
+  "Source": "AuthECApi",
+  "BasePath": "_content/AuthECApi",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
