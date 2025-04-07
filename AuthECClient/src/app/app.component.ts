@@ -16,7 +16,6 @@ export class AppComponent {
   ngOnInit() : void {
     this.authService.initializeAuthState().then(() => {
       console.log("Auth initialized");
-
     })
   }
 }

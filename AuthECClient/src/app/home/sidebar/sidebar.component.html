@@ -3,14 +3,16 @@
     <div class="sidebar-header">
       <h3>My App</h3>
     </div>
+
+    <!-- User Info Section -->
     <div class="user-info">
-      <h4>{{ currentUserUsername()}} </h4>
-      <p>{{ currentUserEmail() }}</p>
+      <h4 class="username">{{ currentUserUsername() }}</h4>
+      <p class="email">{{ currentUserEmail() }}</p>
     </div>
 
     <mat-nav-list>
       <a mat-list-item routerLink="/home/dashboard" routerLinkActive="active">
-        <mat-icon>home</mat-icon>
+        <mat-icon>dashboard</mat-icon> <!-- Changed to dashboard icon -->
         Dashboard
       </a>
       <a mat-list-item routerLink="/home/profile" routerLinkActive="active">
@@ -28,7 +30,7 @@
     </mat-nav-list>
   </mat-sidenav>
 
-  <mat-sidenav-content>
+  <!-- <mat-sidenav-content>
     <router-outlet></router-outlet>
-  </mat-sidenav-content>
+  </mat-sidenav-content> -->
 </mat-sidenav-container>

@@ -71,6 +71,11 @@ namespace MyApp.Namespace
         {
             var refreshToken = Request.Cookies["refreshToken"];
 
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return  BadRequest("the is no refresh token");
+            }
+
             var result = await _authService.RefreshTokenAsync(refreshToken);
 
             if (!result.IsAuthenticated)
@@ -103,9 +108,11 @@ namespace MyApp.Namespace
             {
                 HttpOnly = true,
                 Expires = expires.ToLocalTime(),
-                Secure = false,
+                Secure = true, // Enable in all environments
                 IsEssential = true,
-                SameSite = SameSiteMode.Lax
+                SameSite = SameSiteMode.Lax,
+                Domain = "localhost", // Restrict to your domain
+                Path = "/", // Restrict path if needed
             };
 
             Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);

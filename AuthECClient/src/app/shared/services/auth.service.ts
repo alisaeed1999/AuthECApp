@@ -28,7 +28,7 @@ export class AuthService {
   //   return new Promise(resolve => {
   //     const token = localStorage.getItem('access_token');
 
-  //     if (token && this.jwtHelper.isTokenExpired(token)) {
+  //     if (!token && this.jwtHelper.isTokenExpired(token)) {
   //       this.refreshToken().subscribe({
   //         next: () => resolve(),
   //         error: () => {
@@ -37,10 +37,12 @@ export class AuthService {
   //         }
   //       });
   //     } else if (token) {
+  //       this.accessTokenSubject.next(token);
   //       this.startRefreshTokenTimer(token);
   //       resolve();
   //     } else {
   //       // No token at all, do nothing
+  //       this.accessTokenSubject.next(token);
   //       resolve();
   //     }
   //   });
@@ -50,15 +52,32 @@ export class AuthService {
   public initializeAuthState(): Promise<void> {
     return new Promise(resolve => {
       const token = localStorage.getItem('access_token');
-      if (!token || this.jwtHelper.isTokenExpired(token)) {
-        this.refreshToken().subscribe(() => resolve(), () => resolve());
+
+      // No token at all - go straight to login
+      if (!token) {
+        this.router.navigate(['/user/login']);
+        return resolve();
+      }
+
+      // Token exists but expired - try refresh
+      if (this.jwtHelper.isTokenExpired(token)) {
+        this.refreshToken().subscribe({
+          next: () => resolve(),
+          error: () => {
+            this.handleLogout();
+            this.router.navigate(['/user/login']);
+            resolve();
+          }
+        });
       } else {
+        // Valid token exists
         this.accessTokenSubject.next(token);
         this.startRefreshTokenTimer(token);
         resolve();
       }
     });
   }
+
 
 
 
@@ -109,7 +128,6 @@ export class AuthService {
 
   // Refresh token process
   refreshToken(): Observable<any> {
-    // Don't make multiple refresh requests
     if (this.isRefreshing) {
       return this.accessTokenSubject.pipe(
         filter(token => token !== null),
@@ -119,20 +137,26 @@ export class AuthService {
 
     this.isRefreshing = true;
 
-    // The backend expects the token in a cookie, not in the request body
-    return this.http.get(`${this.baseURL}/refreshToken` , {withCredentials : true}).pipe(
+    return this.http.get(`${this.baseURL}/refreshToken`, {withCredentials: true}).pipe(
       tap((response: any) => {
         this.isRefreshing = false;
+        if (!response?.token) {
+          throw new Error('Invalid refresh token response');
+        }
         this.setSession(response);
         this.startRefreshTokenTimer(response.token);
       }),
       catchError(error => {
         this.isRefreshing = false;
-        // Clear potentially invalid cookies
-        // document.cookie = 'refreshToken=;';
-        this.logout();
+        console.error("Refresh token failed:", error);
+        if (error.status === 401 || error.status === 403) {
+          // Token is invalid or expired - force logout
+          this.handleLogout();
+          return throwError(() => new Error('Session expired'));
+        }
         return throwError(() => error);
       })
+
     );
   }
 
@@ -162,7 +186,7 @@ export class AuthService {
 
   logout(): Observable<any> {
     // Use the refresh token from cookies to revoke it on the server
-    return this.http.post(`${this.baseURL}/revokeToken`, {}).pipe(
+    return this.http.post(`${this.baseURL}/revokeToken`, {} , {withCredentials : true}).pipe(
       tap(() => this.handleLogout()),
       catchError(error => {
         // Even if server-side logout fails, clear local state

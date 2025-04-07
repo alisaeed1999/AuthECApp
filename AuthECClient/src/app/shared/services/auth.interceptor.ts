@@ -3,13 +3,14 @@ import { HttpEvent, HttpInterceptor, HttpHandler, HttpRequest, HttpErrorResponse
 import { Observable, throwError, BehaviorSubject, ReplaySubject } from 'rxjs';
 import { catchError, switchMap, filter, take } from 'rxjs/operators';
 import { AuthService } from './auth.service';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   private isRefreshingToken = false;
   private tokenSubject = new ReplaySubject<string | null>(1);
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService , private router : Router) {}
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     // Add token to all requests except auth endpoints
@@ -46,37 +47,47 @@ export class AuthInterceptor implements HttpInterceptor {
     return url.includes('/signin') || url.includes('/signup') || url.includes('/refreshToken');
   }
 
+  private refreshTokenAttempts = 0;
+  private readonly MAX_REFRESH_ATTEMPTS = 2;
+
   private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    if (this.refreshTokenAttempts >= this.MAX_REFRESH_ATTEMPTS) {
+      this.authService.logout().subscribe();
+      return throwError(() => new Error('Max refresh attempts reached'));
+    }
+
     if (!this.isRefreshingToken) {
       this.isRefreshingToken = true;
       this.tokenSubject.next(null);
+      this.refreshTokenAttempts++;
 
       return this.authService.refreshToken().pipe(
         switchMap(() => {
           this.isRefreshingToken = false;
+          this.refreshTokenAttempts = 0;
           const token = this.authService.getAccessToken();
           this.tokenSubject.next(token);
-
-          // Clone the request with the new token
           return next.handle(this.addTokenToRequest(request, token));
         }),
         catchError(err => {
           this.isRefreshingToken = false;
-          this.authService.logout();
+          if (this.refreshTokenAttempts >= this.MAX_REFRESH_ATTEMPTS || err.status === 401) {
+            this.authService.logout().subscribe(() => {
+              this.router.navigate(['/user/login']);
+            });
+          }
           return throwError(() => err);
         })
       );
-    } else {
-      // Wait for token to be refreshed
-      return this.tokenSubject.pipe(
-        filter(token => token !== null),
-        take(1),
-        switchMap(token => {
-          return next.handle(this.addTokenToRequest(request, token));
-        })
-      );
     }
+    // wait for the refresh
+    return this.tokenSubject.pipe(
+      filter(token => token !== null),
+      take(1),
+      switchMap(token => next.handle(this.addTokenToRequest(request, token)))
+    );
   }
+
 
   private addTokenToRequest(request: HttpRequest<any>, token: string | null): HttpRequest<any> {
     if (token) {
