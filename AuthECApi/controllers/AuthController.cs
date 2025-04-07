@@ -7,10 +7,12 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using AuthECApi.services;
+using Microsoft.AspNetCore.Cors;
 
 namespace MyApp.Namespace
 {
     [Route("api/[controller]")]
+    [EnableCors("AllowAngularApp")]
     [ApiController]
     public class AuthController : ControllerBase
     {
@@ -29,6 +31,7 @@ namespace MyApp.Namespace
             if (!result.IsAuthenticated)
                 return BadRequest(result.Message);
 
+            SetRefreshTokenInCookie(result.RefreshToken , result.RefreshTokenExpiration);
             return Ok(result);            
         }
 
@@ -43,6 +46,8 @@ namespace MyApp.Namespace
 
             if (!result.IsAuthenticated)
                 return BadRequest(result.Message);
+
+            SetRefreshTokenInCookie(result.RefreshToken , result.RefreshTokenExpiration);
 
             return Ok(result);
         }
@@ -98,9 +103,9 @@ namespace MyApp.Namespace
             {
                 HttpOnly = true,
                 Expires = expires.ToLocalTime(),
-                Secure = true,
+                Secure = false,
                 IsEssential = true,
-                SameSite = SameSiteMode.None
+                SameSite = SameSiteMode.Lax
             };
 
             Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);

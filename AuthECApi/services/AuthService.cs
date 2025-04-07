@@ -246,7 +246,7 @@ public class AuthService : IAuthService
             return new RefreshToken
             {
                 Token = Convert.ToBase64String(randomNumber),
-                ExpiresOn = DateTime.UtcNow.AddDays(10),
+                ExpiresOn = DateTime.UtcNow.AddDays(_jwt.DurationInMinutes),
                 CreatedOn = DateTime.UtcNow,
             };
         }

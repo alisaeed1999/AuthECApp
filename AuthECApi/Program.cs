@@ -60,6 +60,19 @@ builder.Services.AddDbContext<AppDbContext>(options => {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularApp",
+        builder =>
+        {
+            builder
+                .WithOrigins("http://localhost:4200") // Your Angular app's URL
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials(); // This is crucial for cookies
+        });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -92,10 +105,7 @@ using(var scope = app.Services.CreateScope())
 }
 
 #region Config. CORS
-app.UseCors(options =>
-    options.WithOrigins("http://localhost:4200")
-            .AllowAnyMethod()
-            .AllowAnyHeader());
+app.UseCors("AllowAngularApp");
 #endregion
 
 app.UseAuthentication();

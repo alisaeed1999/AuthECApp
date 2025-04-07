@@ -9,6 +9,7 @@ export class AutoLoginGuard implements CanActivate {
   canActivate(): boolean {
     if (this.authService.isAuthenticated()) {
       console.log("user is authenticated");
+
       this.router.navigate(['/home']);
       return false;
     }
