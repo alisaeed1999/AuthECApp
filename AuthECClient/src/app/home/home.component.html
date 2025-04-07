@@ -1,0 +1,6 @@
+<div class="main-container">
+  <app-sidebar [currentUserEmail]="currentUser.email" [currentUserUsername]="currentUser.sub" ></app-sidebar>
+  <div class="content-area">
+    <router-outlet></router-outlet>
+  </div>
+</div>
